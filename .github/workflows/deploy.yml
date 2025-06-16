@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (необов'язково, але добре для логів)
         uses: actions/checkout@v4
 
       - name: Set up SSH
@@ -20,15 +20,31 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Droplet
+      - name: Deploy to DigitalOcean Droplet
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
-            cd /gateway
-            git pull origin main
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+            set -e  # зупинити виконання при першій помилці
 
+            echo "✅ Крок 1: Клон або pull"
+            if [ ! -d "/gateway/.git" ]; then
+              echo "➡️ Репозиторій не існує. Клоную..."
+              git clone https://github.com/rsavuliak/gateway.git /gateway
+            else
+              echo "🔄 Оновлюю код"
+              cd /gateway
+              git pull origin main
+            fi
+
+            echo "✅ Крок 2: Створити мережу, якщо треба"
+            docker network inspect gateway-network >/dev/null 2>&1 || docker network create gateway-network
+
+            echo "✅ Крок 3: Побудова і перезапуск контейнера"
+            cd /gateway
             docker stop gateway || true
             docker rm gateway || true
 
             docker build -t nginx-gateway .
             docker run -d --name gateway -p 80:80 --network gateway-network nginx-gateway
+
+            echo "🚀 Gateway перезапущено успішно"
           EOF
