@@ -1,4 +1,4 @@
-name: Deploy Gateway to DigitalOcean
+name: Deploy Gateway
 
 on:
   push:
@@ -10,41 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code (необов'язково, але добре для логів)
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DO_KEY_CI }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+      - name: Copy files to server via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "."
+          target: "~/gateway"
 
-      - name: Deploy to DigitalOcean Droplet
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
-            set -e  # зупинити виконання при першій помилці
-
-            echo "✅ Крок 1: Клон або pull"
-            if [ ! -d "/gateway/.git" ]; then
-              echo "➡️ Репозиторій не існує. Клоную..."
-              git clone https://github.com/rsavuliak/gateway.git /gateway
-            else
-              echo "🔄 Оновлюю код"
-              cd /gateway
-              git pull origin main
-            fi
-
-            echo "✅ Крок 2: Створити мережу, якщо треба"
-            docker network inspect gateway-network >/dev/null 2>&1 || docker network create gateway-network
-
-            echo "✅ Крок 3: Побудова і перезапуск контейнера"
-            cd /gateway
-            docker stop gateway || true
-            docker rm gateway || true
-
-            docker build -t nginx-gateway .
-            docker run -d --name gateway -p 80:80 --network gateway-network nginx-gateway
-
-            echo "🚀 Gateway перезапущено успішно"
-          EOF
+      - name: Run deployment script via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/gateway
+            docker network inspect backend >/dev/null 2>&1 || docker network create backend
+            docker compose down
+            docker compose up -d --build
