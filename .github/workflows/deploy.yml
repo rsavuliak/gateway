@@ -17,31 +17,31 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
-          username: root
+          username: deploy
           key: ${{ secrets.DO_KEY_CI }}
           port: 22
           source: .
-          target: ~/gateway
+          target: /home/deploy/gateway
 
       - name: 🚀 SSH & deploy
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.HOST }}
-          username: root
+          username: deploy
           key: ${{ secrets.DO_KEY_CI }}
           port: 22
           script: |
             echo "✅ Крок 1: Клон або pull"
-            if [ ! -d "~/gateway/.git" ]; then
+            if [ ! -d "/home/deploy/gateway/.git" ]; then
               git clone ${{ secrets.GATEWAY_REPO }} ~/gateway
             else
-              cd ~/gateway && git pull origin main
+              cd ~/home/deploy/gateway && git pull origin main
             fi
 
             echo "✅ Крок 2: Створити мережу, якщо треба"
             docker network inspect backend >/dev/null 2>&1 || docker network create backend
 
             echo "✅ Крок 3: Побудова і перезапуск контейнера"
-            cd ~/gateway
+            cd /home/deploy/gateway
             docker compose down || true
             docker compose up -d --build
