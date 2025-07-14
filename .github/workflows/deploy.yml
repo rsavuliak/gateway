@@ -43,5 +43,12 @@ jobs:
 
             echo "✅ Крок 3: Побудова і перезапуск контейнера"
             cd /home/deploy/gateway
-            docker compose down || true
-            docker compose up -d --build
+
+            echo "🧹 Зупинка і видалення старого контейнера"
+            docker compose down
+
+            echo "⚙️  Побудова нового образу без кешу"
+            docker compose build --no-cache --pull
+
+            echo "🚀 Запуск нового контейнера"
+            docker compose up -d
