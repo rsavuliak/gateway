@@ -35,14 +35,16 @@ jobs:
             if [ ! -d "/home/deploy/gateway/.git" ]; then
               git clone ${{ secrets.GATEWAY_REPO }} ~/gateway
             else
-              cd ~/home/deploy/gateway && git pull origin main
+              cd ~/gateway && git pull origin main
             fi
 
             echo "✅ Крок 2: Створити мережу, якщо треба"
             docker network inspect backend >/dev/null 2>&1 || docker network create backend
 
-            echo "✅ Крок 3: Побудова і перезапуск контейнера"
+            echo "✅ Крок 3: Прибрати зайві образи"
+            docker image prune -af || true
+
+            echo "✅ Крок 4: Побудова і запуск"
             cd /home/deploy/gateway
             docker compose down || true
-            docker rm gateway
-            docker compose up -d --build
+            docker compose up -d --build --remove-orphans
