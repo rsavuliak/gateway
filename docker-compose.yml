@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   nginx-proxy:
@@ -16,26 +16,28 @@ services:
       - ./data/dhparam:/etc/nginx/dhparam
     networks:
       - proxy-tier
-    environment:
-      - ENABLE_IPV6=false
+    labels:
+      com.github.nginx-proxy.nginx: "true"
 
   acme-companion:
-    image: nginxproxy/acme-companion:2.6.0
+    image: nginxproxy/acme-companion
     container_name: acme-companion
     restart: unless-stopped
     depends_on:
+      - nginx-proxy
+    volumes_from:
       - nginx-proxy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/certs:/etc/nginx/certs:rw
       - ./data/acme:/etc/acme.sh
-      - ./data/vhost.d:/etc/nginx/vhost.d
-      - ./data/html:/usr/share/nginx/html
-      - ./data/dhparam:/etc/nginx/dhparam
+    environment:
+      NGINX_PROXY_CONTAINER: nginx-proxy
+      ACME_CA_URI: https://acme-v02.api.letsencrypt.org/directory
+      LETSENCRYPT_EMAIL: "savuliak.roman@gmail.com"
+      # Optional: LETSENCRYPT_TEST set to "true" for staging
     networks:
       - proxy-tier
-    environment:
-      - NGINX_PROXY_CONTAINER=nginx-proxy
 
 networks:
   proxy-tier:
