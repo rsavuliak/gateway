@@ -4,7 +4,4 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-COPY cert ./etc/nginx
-
-
-EXPOSE 443 80
+EXPOSE 80
