@@ -4,8 +4,8 @@ services:
     build: .
     container_name: gateway
     ports:
-      - "443:443"
       - "80:80"
+      - "443:443"
     networks:
       - gateway-network
 

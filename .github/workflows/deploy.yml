@@ -39,7 +39,7 @@ jobs:
             fi
 
             echo "✅ Крок 2: Створити мережу, якщо треба"
-            docker network inspect backend >/dev/null 2>&1 || docker network create backend
+            # docker network inspect backend >/dev/null 2>&1 || docker network create backend
 
             echo "✅ Крок 3: Прибрати зайві образи"
             docker image prune -af || true
